@@ -1,0 +1,12 @@
+{
+  "APP_TOKEN_COOKIE_NAME": "myapp_session",
+  "STRATO_URL": "http://example.com",
+  "CLIENT_ID": "oauth-client-id",
+  "CLIENT_SECRET": "oauth-client-secret",
+  "OAUTH_PATHS": {
+    "TOKEN_HOST": "https://login.microsoftonline.com",
+    "TOKEN_PATH": "/<azure-tenant-id>/oauth2/token",
+    "AUTHORIZE_PATH": "/<azure-tenant-id>/oauth2/authorize"
+  },
+  "OAUTH_REDIRECT_URI": "http://localhost:3000/callback"
+}

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>OAuth demo</title>
+  <link rel='stylesheet' href='/stylesheets/style.css' />
+  <script src='https://code.jquery.com/jquery-3.2.1.min.js'></script>
+</head>
+<body>
+<h2>My account on blockchain</h2>
+<button type="button" id="get-key-btn">Get my address</button>
+<div id="get-key-result"></div>
+<br/>
+<button type="button" id="create-key-btn">Create my key</button>
+<div id="create-key-result"></div>
+<br/>
+<h2>Make a transaction</h2>
+Transfer tokens:
+<form action='#' id='transfer-form'>
+  <br/>
+  From:<br/>
+  <input type='text' name='my-address' placeholder='My address' id='transfer-my-address' size="64" required><br/>
+  To:<br/>
+  <input type='text' name='to-address' placeholder='To address' id='transfer-to-address' size="64" required><br/>
+  Wei:<br/>
+  <input type='text' name='transfer-wei' placeholder='1000' id='transfer-wei' size="64" required><br/>
+  <input type='submit' value='Send tokens'>
+</form>
+<div id="transfer-result"></div>
+
+<script>
+  $('#create-key-btn').click(function (event) {
+    $.get('/create-key')
+        .done(function (res) {
+          console.log(res);
+          $('#create-key-result').html(res);
+        })
+        .fail(function (err) {
+          console.warn(err);
+          $('#create-key-result').text('Error:' + err.responseText);
+        });
+  });
+
+  $('#get-key-btn').click(function (event) {
+    $.get('/get-key')
+        .done(function (res) {
+          console.log(res);
+          $('#get-key-result').text(res);
+        })
+        .fail(function (err) {
+          console.warn(err);
+          $('#get-key-result').text('Error:' + err.responseText);
+        });
+  });
+
+  $('#transfer-form').submit(function (event) {
+    // Stop the default form submit flow
+    event.preventDefault();
+    $('#transfer-result').text("Waiting for transaction result...");
+    $.post({
+      url: '/transfer',
+      data: JSON.stringify({
+        addressFrom: $('#transfer-my-address').val(),
+        addressTo: $('#transfer-to-address').val(),
+        transferWei: $('#transfer-wei').val(),
+      }),
+      contentType: 'application/json',
+      dataType: 'json'
+    })
+        .done(function(res) {
+          console.log(res);
+          $('#transfer-result').text(res);
+        })
+        .fail(function(err) {
+          console.warn(err);
+          $('#transfer-result').text('Error:' + err.responseText);
+        })
+  });
+
+</script>
+</body>
+</html>

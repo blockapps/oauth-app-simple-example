@@ -5,13 +5,12 @@ Application with OAuth2 flow enabled
 
 1. How to configure:
   Assuming we deploy STRATO node on `http://localhost` and Application on `http://localhost:3000` (other URLs will also work as well as https(with additional ssl setup for STRATO))
-  - Two "App Registrations" should be created in Azure AD (App registration "MY APP" should have App registration "STRATO" set as the "resource"). This is the configuration that works fine but some of these steps may be excessive:
+  - Two "App Registrations" should be created in Azure AD (App registration "MY APP" should have App registration "STRATO" set as the "resource"):
     - "STRATO" app registration should have:
       - APP ID URI = `http://localhost`
-      - Reply URL = `http://localhost` (may be excessive)
     - "MY APP" application registration should have:
       - APP ID URI = http://localhost:3000
-      - Reply URLs: `http://localhost:3000/callback`, `http://localhost:3000/auth/confirm`, `http://localhost`(this one may be excessive)
+      - Reply URLs: `http://localhost:3000/callback`, `http://localhost:3000/auth/confirm`
       - API ACCESS -> Required Permissions -> Add -> Select STRATO node's app registration -> Check Delegeted permissions on permissions page -> Save
       - Keys -> create `Password` type secret (start typing the name to create) - use these credentials for APP deployment
   - Application config and deployment (on `http://localhost:3000`)

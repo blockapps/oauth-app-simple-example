@@ -102,19 +102,22 @@ router.get('/create-key', validateCookie(), async function(req, res, next) {
   }
 });
 
-router.get('/get-key', validateCookie(), async function(req, res, next) {
-  // Calling the OAUTH JWT secured API endpoint
-  try {
-    const getKeyResponse = await rp({
-      uri: `${STRATO_URL}/strato/v2.3/key`,
-      method: 'GET',
-      headers: {'Authorization': `Bearer ${req.access_token}`}
-    });
-    res.send(getKeyResponse)
-  } catch(error) {
-    console.warn('get address error', error.message);
-    res.status(500).send('something went wrong with GET /key request: ' + error);
-  }
+router.get('/get-key', validateCookie(), function(req, res, next) {
+  co(function*() {
+    // Calling the OAUTH JWT secured API endpoint
+    try {
+      const getKeyResponse = yield rest.getKey(req.access_token);
+      // const getKeyResponse = await rp({
+      //   uri: `${STRATO_URL}/strato/v2.3/key`,
+      //   method: 'GET',
+      //   headers: {'Authorization': `Bearer ${req.access_token}`}
+      // });
+      res.send(getKeyResponse)
+    } catch(error) {
+      console.warn('get address error', error.message);
+      res.status(500).send('something went wrong with GET /key request: ' + error);
+    }
+  })
 });
 
 router.post('/transfer', validateCookie(), async function(req, res, next) {

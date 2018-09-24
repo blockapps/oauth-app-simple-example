@@ -4,6 +4,8 @@ var router = express.Router();
 const ba = require('blockapps-rest');
 const rest = ba.rest;
 
+const co = require('co');
+
 const rp = require('request-promise');
 
 const config = require('../config');
@@ -13,7 +15,6 @@ const STRATO_URL = config['STRATO_URL'];
 const CLIENT_ID = config['CLIENT_ID'];
 const CLIENT_SECRET = config['CLIENT_SECRET'];
 const OAUTH_PATHS = config['OAUTH_PATHS'];
-
 
 
 // Set the configuration settings, see https://www.npmjs.com/package/simple-oauth2 for details
@@ -36,28 +37,37 @@ router.get('/', validateCookie(), async function(req, res, next) {
   res.render('index');
 });
 
-router.get('/login', async function(req, res, next) {
-  if (!req.cookies[APP_TOKEN_COOKIE_NAME]) {
-    const authorizationUri = rest.oauthGetSigninURL();
+router.get('/login', function(req, res, next) {
+  co(function*() {
+      if (!req.cookies[APP_TOKEN_COOKIE_NAME]) {
+        try {
+          const authorizationUri = rest.oauthGetSigninURL();
+          res.redirect(authorizationUri);
+        } catch (error) {
+          console.error('Authorization Uri Error', error.message);
+          res.status(500).send('something went wrong with authorization uri: ' + error);
+        }
+      } else {
+        res.redirect('/');
+      }
+    }
+  )}
+);
 
-    // Redirect example using Express (see http://expressjs.com/api.html#res.redirect)
-    res.redirect(authorizationUri);
-  } else {
-    res.redirect('/');
-  }
-});
+router.get('/callback', function(req, res, next) {
+  co(function*() {
+    try {
+      // Get the access token object (the authorization code is given from the previous step) and save the access token
+      const accessTokenResponse = yield rest.oauthGetAccessTokenByAuthCode(req.query['code']);
 
-router.get('/callback', async function(req, res, next) {
-  try {
-    // Get the access token object (the authorization code is given from the previous step) and save the access token
-    const accessTokenResponse = await rest.oauthGetAccessTokenByAuthCode(req.query['code']);
-    // We can encrypt the access_token before setting it as a cookie for client for additional security
-    res.cookie(APP_TOKEN_COOKIE_NAME, accessTokenResponse.token['access_token'], { maxAge: 900000, httpOnly: true });
-    res.redirect('/');
-  } catch (error) {
-    console.err('Access Token Error', error.message);
-    res.status(500).send('something went wrong with oauth: ' + error);
-  }
+      // We can encrypt the access_token before setting it as a cookie for client for additional security
+      res.cookie(APP_TOKEN_COOKIE_NAME, accessTokenResponse.token['access_token'], { maxAge: 900000, httpOnly: true });
+      res.redirect('/');
+    } catch (error) {
+      console.error('Access Token Error', error.message);
+      res.status(500).send('something went wrong with oauth: ' + error);
+    }
+  })
 });
 
 router.get('/create-key', validateCookie(), async function(req, res, next) {
@@ -106,7 +116,6 @@ router.get('/get-key', validateCookie(), async function(req, res, next) {
     res.status(500).send('something went wrong with GET /key request: ' + error);
   }
 });
-
 
 router.post('/transfer', validateCookie(), async function(req, res, next) {
   const addressFrom = req.body.addressFrom;

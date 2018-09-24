@@ -10,7 +10,7 @@ Application with OAuth2 flow enabled
       - APP ID URI = `http://localhost`
     - "MY APP" application registration should have:
       - APP ID URI = http://localhost:3000
-      - Reply URLs: `http://localhost:3000/callback`, `http://localhost:3000/auth/confirm`
+      - Reply URL: `http://localhost:3000/callback`
       - API ACCESS -> Required Permissions -> Add -> Select STRATO node's app registration -> Check Delegeted permissions on permissions page -> Save
       - Keys -> create `Password` type secret (start typing the name to create) - use the generated key as CLIENT_SECRET for APP deployment. CLIENT_ID is Application ID of the "MY APP".
   - Application config and deployment (on `http://localhost:3000`)

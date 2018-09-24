@@ -1,6 +1,9 @@
 var express = require('express');
 var router = express.Router();
 
+const ba = require('blockapps-rest');
+const rest = ba.rest;
+
 const rp = require('request-promise');
 
 const config = require('../config');
@@ -10,6 +13,7 @@ const STRATO_URL = config['STRATO_URL'];
 const CLIENT_ID = config['CLIENT_ID'];
 const CLIENT_SECRET = config['CLIENT_SECRET'];
 const OAUTH_PATHS = config['OAUTH_PATHS'];
+
 
 
 // Set the configuration settings, see https://www.npmjs.com/package/simple-oauth2 for details
@@ -34,12 +38,7 @@ router.get('/', validateCookie(), async function(req, res, next) {
 
 router.get('/login', async function(req, res, next) {
   if (!req.cookies[APP_TOKEN_COOKIE_NAME]) {
-    const authorizationUri = oauth2.authorizationCode.authorizeURL({
-      redirect_uri: config['OAUTH_REDIRECT_URI'],
-      scope: 'email openid', // also can be an array of multiple scopes, ex. ['<scope1>, '<scope2>', '...']
-      state: '',
-      resource: STRATO_URL,
-    });
+    const authorizationUri = rest.oauthGetSigninURL();
 
     // Redirect example using Express (see http://expressjs.com/api.html#res.redirect)
     res.redirect(authorizationUri);
@@ -49,18 +48,9 @@ router.get('/login', async function(req, res, next) {
 });
 
 router.get('/callback', async function(req, res, next) {
-  // Get the access token object (the authorization code is given from the previous step).
-  const tokenConfig = {
-    code: req.query['code'],
-    redirect_uri: config['OAUTH_REDIRECT_URI'],
-    scope: 'email openid', // also can be an array of multiple scopes, ex. ['<scope1>, '<scope2>', '...']
-    resource: STRATO_URL
-  };
-
-  // Save the access token
   try {
-    const result = await oauth2.authorizationCode.getToken(tokenConfig);
-    const accessTokenResponse = oauth2.accessToken.create(result);
+    // Get the access token object (the authorization code is given from the previous step) and save the access token
+    const accessTokenResponse = await rest.oauthGetAccessTokenByAuthCode(req.query['code']);
     // We can encrypt the access_token before setting it as a cookie for client for additional security
     res.cookie(APP_TOKEN_COOKIE_NAME, accessTokenResponse.token['access_token'], { maxAge: 900000, httpOnly: true });
     res.redirect('/');

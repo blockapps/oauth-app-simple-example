@@ -53,36 +53,33 @@ router.get('/callback', function(req, res, next) {
   })
 });
 
-router.get('/create-key', validateCookie(), async function(req, res, next) {
-  let createKeyResponse;
-  // Calling the OAUTH JWT secured API endpoint
-  try {
-    createKeyResponse = await rp({
-      uri: `${STRATO_URL}/strato/v2.3/key`,
-      method: 'POST',
-      headers: {'Authorization': `Bearer ${req.access_token}`},
-      json: true
-    });
-  } catch(error) {
-    if (error.statusCode === 400) {
-      res.status(400).send(error.message)
-    } else {
-      console.warn('key create error', error.message);
-      res.status(500).send('something went wrong with POST /key request: ' + error);
+router.get('/create-key', validateCookie(), function(req, res, next) {
+  co(function*() {
+    let createKeyResponse;
+    // Calling the OAUTH JWT secured API endpoint
+    try {
+      createKeyResponse = yield rest.createKey(req.access_token);
+    } catch(error) {
+      if (error.statusCode === 400) {
+        res.status(400).send(error.message)
+      } else {
+        console.warn('key create error', error.message);
+        res.status(500).send('something went wrong with POST /key request: ' + error);
+      }
+      return // do not execute faucet step
     }
-    return // do not execute faucet step
-  }
 
-  try {
-    await rp({
-      uri: `${STRATO_URL}/bloc/v2.2/users/whatever/${createKeyResponse.address}/fill?resolve=`,
-      method: 'POST',
-    });
-    res.send(`Key and address (${createKeyResponse.address}) were created. Address was "fauceted"`);
-  } catch(error) {
-    console.warn('faucet error', error.message);
-    res.status(500).send('something went wrong with faucet request: ' + error);
-  }
+    try {
+      yield rp({
+        uri: `${STRATO_URL}/bloc/v2.2/users/whatever/${createKeyResponse.address}/fill?resolve=`,
+        method: 'POST',
+      });
+      res.send(`Key and address (${createKeyResponse.address}) were created. Address was "fauceted"`);
+    } catch(error) {
+      console.warn('faucet error', error.message);
+      res.status(500).send('something went wrong with faucet request: ' + error);
+    }
+  })
 });
 
 router.get('/get-key', validateCookie(), function(req, res, next) {

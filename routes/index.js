@@ -16,23 +16,6 @@ const CLIENT_ID = config['CLIENT_ID'];
 const CLIENT_SECRET = config['CLIENT_SECRET'];
 const OAUTH_PATHS = config['OAUTH_PATHS'];
 
-
-// Set the configuration settings, see https://www.npmjs.com/package/simple-oauth2 for details
-const credentials = {
-  client: {
-    id: CLIENT_ID,
-    secret: CLIENT_SECRET
-  },
-  auth: {
-    // TODO: call /v2.0/.well-known/openid-configuration discovery endpoint to get all oauth paths automatically to fill this object;
-    tokenHost: OAUTH_PATHS['TOKEN_HOST'],
-    tokenPath: OAUTH_PATHS['TOKEN_PATH'],
-    // revokePath: '',
-    authorizePath: OAUTH_PATHS['AUTHORIZE_PATH'],
-  }
-};
-const oauth2 = require('simple-oauth2').create(credentials);
-
 router.get('/', validateCookie(), async function(req, res, next) {
   res.render('index');
 });

@@ -5,18 +5,13 @@ const ba = require('blockapps-rest');
 const rest = ba.rest;
 const common = ba.common;
 const util = common.util;
+const oauthConfig = common.config.oauth;
 
 const co = require('co');
 
 const rp = require('request-promise');
 
-const config = require('../config');
-
-const APP_TOKEN_COOKIE_NAME = config['APP_TOKEN_COOKIE_NAME'];
-const STRATO_URL = config['STRATO_URL'];
-const CLIENT_ID = config['CLIENT_ID'];
-const CLIENT_SECRET = config['CLIENT_SECRET'];
-const OAUTH_PATHS = config['OAUTH_PATHS'];
+const APP_TOKEN_COOKIE_NAME = oauthConfig.appTokenCookieName;
 
 router.get('/', validateCookie(), async function(req, res, next) {
   res.render('index');
@@ -24,7 +19,7 @@ router.get('/', validateCookie(), async function(req, res, next) {
 
 router.get('/login', function(req, res, next) {
   co(function*() {
-      if (!req.cookies[APP_TOKEN_COOKIE_NAME]) {
+      if (!req.cookies[oauthConfig.APP_TOKEN_COOKIE_NAME]) {
         try {
           const authorizationUri = util.oauthGetSigninURL();
           res.redirect(authorizationUri);
@@ -73,7 +68,7 @@ router.get('/create-key', validateCookie(), function(req, res, next) {
 
     try {
       yield rp({
-        uri: `${STRATO_URL}/bloc/v2.2/users/whatever/${createKeyResponse.address}/fill?resolve=`,
+        uri: `${oauthConfig.stratoUrl}/bloc/v2.2/users/whatever/${createKeyResponse.address}/fill?resolve=`,
         method: 'POST',
       });
       res.send(`Key and address (${createKeyResponse.address}) were created. Address was "fauceted"`);

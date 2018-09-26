@@ -4,7 +4,7 @@ var router = express.Router();
 const ba = require('blockapps-rest');
 const rest = ba.rest;
 const common = ba.common;
-const util = common.util;
+const oauth = common.oauth;
 const oauthConfig = common.config.oauth;
 
 const co = require('co');
@@ -21,7 +21,7 @@ router.get('/login', function(req, res, next) {
   co(function*() {
       if (!req.cookies[oauthConfig.APP_TOKEN_COOKIE_NAME]) {
         try {
-          const authorizationUri = util.oauthGetSigninURL();
+          const authorizationUri = oauth.oauthGetSigninURL();
           res.redirect(authorizationUri);
         } catch (error) {
           console.error('Authorization Uri Error', error.message);
@@ -38,7 +38,7 @@ router.get('/callback', function(req, res, next) {
   co(function*() {
     try {
       // Get the access token object (the authorization code is given from the previous step) and save the access token
-      const accessTokenResponse = yield util.oauthGetAccessTokenByAuthCode(req.query['code']);
+      const accessTokenResponse = yield oauth.oauthGetAccessTokenByAuthCode(req.query['code']);
 
       // We can encrypt the access_token before setting it as a cookie for client for additional security
       res.cookie(APP_TOKEN_COOKIE_NAME, accessTokenResponse.token['access_token'], { maxAge: 900000, httpOnly: true });

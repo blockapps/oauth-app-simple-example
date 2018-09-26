@@ -95,37 +95,28 @@ router.get('/get-key', validateCookie(), function(req, res, next) {
   })
 });
 
-router.post('/transfer', validateCookie(), async function(req, res, next) {
-  const addressFrom = req.body.addressFrom;
-  const addressTo = req.body.addressTo;
-  const transferWei = req.body.transferWei;
+router.post('/transfer', validateCookie(), function(req, res, next) {
+  co(function*() {
+    const addressFrom = req.body.addressFrom;
+    const addressTo = req.body.addressTo;
+    const transferWei = req.body.transferWei;
 
-  try {
-    const stratoResponse = await rp({
-      uri: `${STRATO_URL}/strato/v2.3/transaction?resolve=true`,
-      method: 'POST',
-      headers: {'Authorization': `Bearer ${req.access_token}`},
-      json: true,
-      body: {
-        address: `${addressFrom}`,
-        txs: [
-          {
-            payload: {
-              toAddress: `${addressTo}`,
-              value: transferWei+""
-            },
-            type: "TRANSFER"
-          }
-        ]
-      }
-    });
-    res.json(JSON.stringify({result: stratoResponse}));
-  } catch(error) {
-    console.warn('transaction error', error.message);
-    res.status(500).send('something went wrong with POST /transaction: ' + error);
-  }
+    try {
+      const stratoResponse = yield rest.sendTransactions(req.access_token, addressFrom, 
+        [{
+          payload: {
+            toAddress: `${addressTo}`,
+            value: transferWei+""
+          },
+          type: "TRANSFER"
+        }], false);
+      res.json(JSON.stringify({result: stratoResponse}));
+    } catch(error) {
+      console.warn('transaction error', error.message);
+      res.status(500).send('something went wrong with POST /transaction: ' + error);
+    }
+  })
 });
-
 
 function validateCookie(req, res, next) {
   return function (req, res, next) {

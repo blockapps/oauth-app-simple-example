@@ -14,11 +14,9 @@
 <div id="create-key-result"></div>
 <br/>
 <h2>Make a transaction</h2>
-Transfer tokens:
+Transfer tokens
 <form action='#' id='transfer-form'>
   <br/>
-  From:<br/>
-  <input type='text' name='my-address' placeholder='My address' id='transfer-my-address' size="64" required><br/>
   To:<br/>
   <input type='text' name='to-address' placeholder='To address' id='transfer-to-address' size="64" required><br/>
   Wei:<br/>
@@ -59,7 +57,6 @@ Transfer tokens:
     $.post({
       url: '/transfer',
       data: JSON.stringify({
-        addressFrom: $('#transfer-my-address').val(),
         addressTo: $('#transfer-to-address').val(),
         transferWei: $('#transfer-wei').val(),
       }),

@@ -119,7 +119,6 @@ router.get('/get-key', validateCookie(), async function(req, res, next) {
 
 
 router.post('/transfer', validateCookie(), async function(req, res, next) {
-  const addressFrom = req.body.addressFrom;
   const addressTo = req.body.addressTo;
   const transferWei = req.body.transferWei;
 
@@ -130,7 +129,6 @@ router.post('/transfer', validateCookie(), async function(req, res, next) {
       headers: {'Authorization': `Bearer ${req.access_token}`},
       json: true,
       body: {
-        address: `${addressFrom}`,
         txs: [
           {
             payload: {

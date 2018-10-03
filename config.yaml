@@ -12,7 +12,6 @@ nodes:
     stratoUrl: 'http://localhost/strato-api'
     blocUrl: 'http://localhost/bloc/v2.2'
     searchUrl: 'http://localhost/cirrus'
-    strato23Url: 'https://oauthdemo.blockapps.net'
 
 oauth:
   appTokenCookieName: "myapp_session"

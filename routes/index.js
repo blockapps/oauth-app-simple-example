@@ -119,11 +119,17 @@ function validateCookie(req, res, next) {
   return function (req, res, next) {
     if (!req.cookies[APP_TOKEN_COOKIE_NAME]) {
       res.redirect('/login');
-    } else {
-      // TODO: validate JWT with signature
-      // TODO: check if token is outdated and refresh from OAUTH Provider if needed
-      req.access_token = req.cookies[APP_TOKEN_COOKIE_NAME];
-      return next();
+    } 
+    else {
+      try {
+        // validate JWT
+        oauth.validateRequest(req, res, next);
+        // check if token is outdated and refresh from OAUTH Provider if needed
+        // oauth.oauthRefreshToken(req.access_token);
+      }
+      catch(error) {
+        console.warn('token validation error', error.message);
+      }
     }
   }
 }

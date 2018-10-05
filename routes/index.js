@@ -42,6 +42,8 @@ router.get('/callback', function(req, res, next) {
 
       // We can encrypt the access_token before setting it as a cookie for client for additional security
       res.cookie(APP_TOKEN_COOKIE_NAME, accessTokenResponse.token['access_token'], { maxAge: 900000, httpOnly: true });
+      res.cookie('refresh_token', accessTokenResponse.token['refresh_token']);
+      res.cookie('expires_in', accessTokenResponse.token['expires_in']);
       res.redirect('/');
     } catch (error) {
       console.error('Access Token Error', error.message);
@@ -125,7 +127,7 @@ function validateCookie(req, res, next) {
         // validate JWT
         oauth.validateRequest(req, res, next);
         // check if token is outdated and refresh from OAUTH Provider if needed
-        // oauth.oauthRefreshToken(req.access_token);
+        oauth.oauthRefreshToken(req.access_token, req.refresh_token, req.expires_in);
       }
       catch(error) {
         console.warn('token validation error', error.message);

@@ -10,9 +10,9 @@ Application with OAuth2 flow enabled
       - APP ID URI = `http://localhost`
     - "MY APP" application registration should have:
       - APP ID URI = http://localhost:3000
-      - Reply URLs: `http://localhost:3000/callback`, `http://localhost:3000/auth/confirm`
-      - API ACCESS -> Required Permissions -> Add -> Select STRATO node's app registration -> Check Delegeted permissions on permissions page -> Save
-      - Keys -> create `Password` type secret (start typing the name to create) - use these credentials for APP deployment
+      - Reply URL: `http://localhost:3000/callback`
+      - API ACCESS -> Required Permissions -> Add -> Select STRATO node's app registration (type it's name in search if not on the list) -> Check Delegeted permissions on permissions page -> Save
+      - Keys -> create `Password` type secret (start typing the name to create) - use the generated key as CLIENT_SECRET for APP deployment. CLIENT_ID is Application ID of the "MY APP".
   - Application config and deployment (on `http://localhost:3000`)
     - Provide STRATO_URL (`http://localhost`), CLIENT_ID and CLIENT_SECRET (from Azure AD step) and provide the proper tenant ID in the URLs under auth object (tenant ID is the organization ID on Azure)
   - STRATO node deployment (on http://localhost) (with `OAUTH_JWT_VALIDATION_ENABLED=true` and `OAUTH_JWT_VALIDATION_DISCOVERY_URL=https://login.microsoftonline.com/<tenant_id>/.well-known/openid-configuration` vars provided (same tenant id that we use for App deployment ))

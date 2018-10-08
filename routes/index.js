@@ -19,7 +19,7 @@ const credentials = {
     secret: CLIENT_SECRET
   },
   auth: {
-    // TODO: call /v2.0/.well-known/openid-configuration discovery endpoint to get all oauth paths automatically to fill this object;
+    // TODO: call /.well-known/openid-configuration discovery endpoint to get all oauth paths automatically to fill this object;
     tokenHost: OAUTH_PATHS['TOKEN_HOST'],
     tokenPath: OAUTH_PATHS['TOKEN_PATH'],
     // revokePath: '',
@@ -65,7 +65,7 @@ router.get('/callback', async function(req, res, next) {
     res.cookie(APP_TOKEN_COOKIE_NAME, accessTokenResponse.token['access_token'], { maxAge: 900000, httpOnly: true });
     res.redirect('/');
   } catch (error) {
-    console.err('Access Token Error', error.message);
+    console.error('Access Token Error', error.message);
     res.status(500).send('something went wrong with oauth: ' + error);
   }
 });

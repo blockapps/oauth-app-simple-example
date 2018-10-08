@@ -15,8 +15,12 @@ Application with OAuth2 flow enabled
       - Keys -> create `Password` type secret (start typing the name to create) - use these credentials for APP deployment
   - Application config and deployment (on `http://localhost:3000`)
     - Provide STRATO_URL (`http://localhost`), CLIENT_ID and CLIENT_SECRET (from Azure AD step) and provide the proper tenant ID in the URLs under auth object (tenant ID is the organization ID on Azure)
-  - STRATO node deployment (on http://localhost) (with `OAUTH_JWT_VALIDATION_ENABLED=true` and `OAUTH_JWT_VALIDATION_DISCOVERY_URL=https://login.microsoftonline.com/<tenant_id>/v2.0/.well-known/openid-configuration` vars provided (same tenant id that we use for App deployment ))
+  - STRATO node deployment (on http://localhost) (with `OAUTH_JWT_VALIDATION_ENABLED=true` and `OAUTH_JWT_VALIDATION_DISCOVERY_URL=https://login.microsoftonline.com/<tenant_id>/.well-known/openid-configuration` vars provided (same tenant id that we use for App deployment ))
 
+```
+Azure AD protocol v2.0 is not supported. Use https://login.microsoftonline.com/<tenant_id>/.well-known/openid-configuration instead of https://login.microsoftonline.com/<tenant_id>/v2.0/.well-known/openid-configuration
+```
+  
 2. Run
   - `npm i`
   - set your configurations in `config.json`

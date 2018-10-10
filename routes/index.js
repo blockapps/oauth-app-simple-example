@@ -96,12 +96,11 @@ router.get('/get-key', validateCookie(), function(req, res, next) {
 
 router.post('/transfer', validateCookie(), function(req, res, next) {
   co(function*() {
-    const addressFrom = req.body.addressFrom;
     const addressTo = req.body.addressTo;
     const transferWei = req.body.transferWei;
 
     try {
-      const stratoResponse = yield rest.sendTransactions(req.access_token, addressFrom, 
+      const stratoResponse = yield rest.sendTransactions(req.access_token, 
         [{
           payload: {
             toAddress: `${addressTo}`,

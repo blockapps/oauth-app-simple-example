@@ -19,7 +19,7 @@ let oauthInstance;
   }
 })();
 
-const APP_TOKEN_COOKIE_NAME = common.config.oauth.appTokenCookieName;
+const APP_TOKEN_COOKIE_NAME = oauthConfig.appTokenCookieName;
 
 router.get('/', validateCookie(), async function(req, res, next) {
   res.render('index');

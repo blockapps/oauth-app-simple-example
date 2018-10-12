@@ -1,17 +1,25 @@
 var express = require('express');
 var router = express.Router();
+const co = require('co');
+const rp = require('request-promise');
 
 const ba = require('blockapps-rest');
 const rest = ba.rest;
 const common = ba.common;
-const oauth = common.oauth;
 const oauthConfig = common.config.oauth;
 
-const co = require('co');
+const OAuth = common.oauth;
+let oauthInstance;
+(async() => {
+  try {
+    oauthInstance = await OAuth.init(oauthConfig);
+  }
+  catch(error) {
+    console.warn("something went wrong with creating oauthInstance", error.message);
+  }
+})();
 
-const rp = require('request-promise');
-
-const APP_TOKEN_COOKIE_NAME = oauthConfig.appTokenCookieName;
+const APP_TOKEN_COOKIE_NAME = common.config.oauth.appTokenCookieName;
 
 router.get('/', validateCookie(), async function(req, res, next) {
   res.render('index');
@@ -19,9 +27,9 @@ router.get('/', validateCookie(), async function(req, res, next) {
 
 router.get('/login', function(req, res, next) {
   co(function*() {
-      if (!req.cookies[oauthConfig.APP_TOKEN_COOKIE_NAME]) {
+      if (!req.cookies[APP_TOKEN_COOKIE_NAME]) {
         try {
-          const authorizationUri = oauth.oauthGetSigninURL();
+          const authorizationUri = oauthInstance.oauthGetSigninURL();
           res.redirect(authorizationUri);
         } catch (error) {
           console.error('Authorization Uri Error', error.message);
@@ -38,7 +46,7 @@ router.get('/callback', function(req, res, next) {
   co(function*() {
     try {
       // Get the access token object (the authorization code is given from the previous step) and save the access token
-      const accessTokenResponse = yield oauth.oauthGetAccessTokenByAuthCode(req.query['code']);
+      const accessTokenResponse = yield oauthInstance.oauthGetAccessTokenByAuthCode(req.query['code']);
 
       // We can encrypt the access_token before setting it as a cookie for client for additional security
       res.cookie(APP_TOKEN_COOKIE_NAME, accessTokenResponse.token['access_token'], { maxAge: 900000, httpOnly: true });
@@ -124,9 +132,9 @@ function validateCookie(req, res, next) {
     else {
       try {
         // validate JWT
-        oauth.validateRequest(req, res, next);
+        oauthInstance.validateRequest(req, res, next);
         // check if token is outdated and refresh from OAUTH Provider if needed
-        oauth.oauthRefreshToken(req.access_token, req.refresh_token, req.expires_in);
+        oauthInstance.oauthRefreshToken(req.access_token, req.refresh_token, req.expires_in);
       }
       catch(error) {
         console.warn('token validation error', error.message);

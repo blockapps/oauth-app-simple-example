@@ -19,6 +19,4 @@ oauth:
   clientId: "oauth-client-id"
   clientSecret: "oauth-client-secret"
   openIdDiscoveryUrl: "https://login.microsoftonline.com/<azure-tenant-id>/.well-known/openid-configuration" 
-  tokenHost: "https://login.microsoftonline.com"
   redirectUri: "http://localhost:3000/callback"
-  tid: "azure-tenant-id"

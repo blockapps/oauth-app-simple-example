@@ -134,11 +134,12 @@ function validateCookie(req, res, next) {
 
 
 router.get('/logout', function(req, res, next) {
-  // NOT THE ACTUAL LOGOUT - only cleans app's cookie, not the oauth provider's cookie so client will be logged in again
-  // TODO: call logout endpoint of oauth provider here
+  // log out and clean cookies
+  const logOutUrl = req.app.oauth.getLogOutUrl();
   res.clearCookie(APP_TOKEN_COOKIE_NAME);
-  res.status(200);
-  res.send('logged out');
+  res.clearCookie('refresh_token');
+  res.clearCookie('expires_in');
+  res.redirect(logOutUrl);
 });
 
 module.exports = router;

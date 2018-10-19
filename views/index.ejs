@@ -6,6 +6,7 @@
   <script src='https://code.jquery.com/jquery-3.2.1.min.js'></script>
 </head>
 <body>
+<button type="button" id="log-out-btn"> Log Out</button>
 <h2>My account on blockchain</h2>
 <button type="button" id="get-key-btn">Get my address</button>
 <div id="get-key-result"></div>
@@ -74,6 +75,10 @@ Transfer tokens:
           console.warn(err);
           $('#transfer-result').text('Error:' + err.responseText);
         })
+  });
+
+  $('#log-out-btn').click(function (event) {
+    window.location = '/logout';
   });
 
 </script>

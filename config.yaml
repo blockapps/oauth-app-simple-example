@@ -1,24 +1,18 @@
 apiDebug: false
-password: '1234'
 timeout: 600000
-libPath: ./server/lib
-contractsPath: ./test/fixtures/
 
-# WARNING - extra strict syntax
-# DO NOT change the nodes order
-# node 0 is the default url for all single node api calls
 nodes:
   - id: 0
-    explorerUrl: 'http://localhost:9000'
-    stratoUrl: 'http://localhost/strato-api'
-    blocUrl: 'http://localhost/bloc/v2.2'
-    searchUrl: 'http://localhost/cirrus'
+    stratoUrl: 'http://localhost:8080/strato-api'
+    blocUrl: 'http://localhost:8080/bloc/v2.2'
+    searchUrl: 'http://localhost:8080/cirrus'
 
 oauth:
-  appTokenCookieName: "myapp_session"
-  stratoUrl: "http://example.com"
-  clientId: "oauth-client-id"
-  clientSecret: "oauth-client-secret"
-  openIdDiscoveryUrl: "https://login.microsoftonline.com/<azure-tenant-id>/.well-known/openid-configuration" 
+  appTokenCookieName: "simple_app_session"
+  appTokenCookieMaxAge: 7776000000 # 90 days: 90 * 24 * 60 * 60 * 1000
+  stratoUrl: "http://localhost:8080"
+  clientId: "MY_CLIENT_ID_HERE"
+  clientSecret: "MY_CLIENT_SECRET_HERE"
+  openIdDiscoveryUrl: "MY_OPENID_DISCOVERY_URL HERE"
   redirectUri: "http://localhost:3000/callback"
-  logoutRedirectUri: "http://localhost:3000"
+  logoutRedirectUri: "http://localhost:3000" # url to redirect after OAuth logout (e.g. app's login screen)

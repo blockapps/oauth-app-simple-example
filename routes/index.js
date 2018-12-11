@@ -1,10 +1,11 @@
 var express = require('express');
 var router = express.Router();
 const co = require('co');
+const jwtDecode = require('jwt-decode');
 const rp = require('request-promise');
 
 const ba = require('blockapps-rest');
-const rest = ba.rest;
+const rest = ba.rest6;
 const common = ba.common;
 const oauthConfig = common.config.oauth;
 
@@ -14,47 +15,47 @@ router.get('/', validateCookie(), async function(req, res, next) {
   res.render('index');
 });
 
-router.get('/login', function(req, res, next) {
-  co(function*() {
-      if (!req.cookies[APP_TOKEN_COOKIE_NAME]) {
-        try {
-          const authorizationUri = req.app.oauth.oauthGetSigninURL();
-          res.redirect(authorizationUri);
-        } catch (error) {
-          console.error('Authorization Uri Error', error.message);
-          res.status(500).send('something went wrong with authorization uri: ' + error);
-        }
-      } else {
-        res.redirect('/');
-      }
-    }
-  )}
-);
-
-router.get('/callback', function(req, res, next) {
-  co(function*() {
+router.get('/login', function (req, res, next) {
+  if (!req.cookies[APP_TOKEN_COOKIE_NAME]) {
     try {
-      // Get the access token object (the authorization code is given from the previous step) and save the access token
-      const accessTokenResponse = yield req.app.oauth.oauthGetAccessTokenByAuthCode(req.query['code']);
-
-      // We can encrypt the access_token before setting it as a cookie for client for additional security
-      res.cookie(APP_TOKEN_COOKIE_NAME, accessTokenResponse.token['access_token'], { maxAge: 900000, httpOnly: true });
-      res.cookie('refresh_token', accessTokenResponse.token['refresh_token']);
-      res.cookie('expires_in', accessTokenResponse.token['expires_in']);
-      res.redirect('/');
+      const authorizationUri = req.app.oauth.oauthGetSigninURL();
+      res.redirect(authorizationUri);
     } catch (error) {
-      console.error('Access Token Error', error.message);
-      res.status(500).send('something went wrong with oauth: ' + error);
+      console.error('Authorization Uri Error', error.message);
+      res.status(500).send('something went wrong with authorization uri: ' + error);
     }
-  })
+  } else {
+    res.redirect('/');
+  }
+});
+
+router.get('/callback', async function(req, res, next) {
+  try {
+    const code = req.query['code'];
+    const tokensResponse = await req.app.oauth.oauthGetAccessTokenByAuthCode(code);
+    const accessToken = tokensResponse.token['access_token'];
+    const refreshToken = tokensResponse.token['refresh_token'];
+
+    const decodedToken = jwtDecode(accessToken);
+    const accessTokenExpiration = decodedToken['exp'];
+
+    res.cookie(req.app.oauth.getCookieNameAccessToken(), accessToken, {maxAge: oauthConfig['appTokenCookieMaxAge'], httpOnly: true});
+    res.cookie(req.app.oauth.getCookieNameAccessTokenExpiry(), accessTokenExpiration, {maxAge: oauthConfig['appTokenCookieMaxAge'], httpOnly: true});
+    res.cookie(req.app.oauth.getCookieNameRefreshToken(), refreshToken, {maxAge: oauthConfig['appTokenCookieMaxAge'], httpOnly: true});
+    res.redirect('/');
+  } catch (error) {
+    console.error('Access Token Error', error.message);
+    res.status(500).send('something went wrong with oauth: ' + error);
+  }
 });
 
 router.get('/create-key', validateCookie(), function(req, res, next) {
+  // TODO: switch to async/await in rest.createKey()
   co(function*() {
     let createKeyResponse;
     // Calling the OAUTH JWT secured API endpoint
     try {
-      createKeyResponse = yield rest.createKey(req.access_token);
+      createKeyResponse = yield rest.createKey(req.accessToken);
     } catch(error) {
       if (error.statusCode === 400) {
         res.status(400).send(error.message)
@@ -79,25 +80,27 @@ router.get('/create-key', validateCookie(), function(req, res, next) {
 });
 
 router.get('/get-key', validateCookie(), function(req, res, next) {
+  // TODO: switch to async/await in rest.getKey()
   co(function*() {
     // Calling the OAUTH JWT secured API endpoint
     try {
-      const getKeyResponse = yield rest.getKey(req.access_token);
+      const getKeyResponse = yield rest.getKey(req.accessToken);
       res.json(JSON.stringify(getKeyResponse));
     } catch(error) {
       console.warn('get address error', error.message);
-      res.status(500).send('something went wrong with GET /key request: ' + error);
+      res.status(error.status).send(error.message)
     }
   })
 });
 
 router.post('/transfer', validateCookie(), function(req, res, next) {
+  // TODO: switch to async/await in rest.sendTransactions()
   co(function*() {
     const addressTo = req.body.addressTo;
     const transferWei = req.body.transferWei;
 
     try {
-      const stratoResponse = yield rest.sendTransactions(req.access_token,
+      const stratoResponse = yield rest.sendTransactions(req.accessToken,
         [{
           payload: {
             toAddress: `${addressTo}`,
@@ -114,19 +117,24 @@ router.post('/transfer', validateCookie(), function(req, res, next) {
 });
 
 function validateCookie(req, res, next) {
-  return function (req, res, next) {
+  return async function (req, res, next) {
     if (!req.cookies[APP_TOKEN_COOKIE_NAME]) {
       res.redirect('/login');
     }
     else {
-      try {
-        // validate JWT
-        req.app.oauth.validateRequest(req, res, next);
-        // check if token is outdated and refresh from OAUTH Provider if needed
-        req.app.oauth.oauthRefreshToken(req.access_token, req.refresh_token, req.expires_in);
-      }
-      catch(error) {
-        console.warn('token validation error', error.message);
+      const accessToken = req.cookies[req.app.oauth.getCookieNameAccessToken()];
+
+      if (!accessToken) {
+        util.response.status('401', res, {loginUrl: req.app.oauth.oauthGetSigninURL()});
+      } else {
+        try {
+          // Not verifying JWT signature here since it is verified on STRATO side with each API call
+          await req.app.oauth.validateAndGetNewToken(req, res);
+        } catch (err) {
+          return res.status(401).send('access token is invalid')
+        }
+        req.accessToken = accessToken;
+        return next();
       }
     }
   }
@@ -136,9 +144,9 @@ function validateCookie(req, res, next) {
 router.get('/logout', function(req, res, next) {
   // log out and clean cookies
   const logOutUrl = req.app.oauth.getLogOutUrl();
-  res.clearCookie(APP_TOKEN_COOKIE_NAME);
-  res.clearCookie('refresh_token');
-  res.clearCookie('expires_in');
+  res.clearCookie(req.app.oauth.getCookieNameAccessToken());
+  res.clearCookie(req.app.oauth.getCookieNameAccessTokenExpiry());
+  res.clearCookie(req.app.oauth.getCookieNameRefreshToken());
   res.redirect(logOutUrl);
 });
 

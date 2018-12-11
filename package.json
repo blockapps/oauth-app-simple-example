@@ -4,7 +4,7 @@
   "description": "A very simple application demonstrating how STRATO-based applications can be integrated with OAuth (OpenID) providers",
   "private": true,
   "scripts": {
-    "start": "node $NODE_DEBUG_OPTION ./bin/www"
+    "start": "node ./bin/www"
   },
   "dependencies": {
     "blockapps-rest": "git://github.com/blockapps/blockapps-rest.git#v6.2.0",

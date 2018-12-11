@@ -10,7 +10,7 @@ Application with STRATO OAuth user management flow enabled
 
 > You can also run this app and STRATO node on any remote host and on different ports (even on HTTPS - with additional SSL setup for STRATO node)
 
-## How to run
+## Configure and run
 
 ### Required client configuration on OAuth server
  - Client should have the "Reply URL" `http://localhost:3000/callback`
@@ -86,6 +86,7 @@ The Application should now be available on `http://localhost:3000` and will redi
 7. On the demo application page (http://localhost:3000) paste the address to the "Transfer tokens - To:" field
 8. Enter some amount of tokens to be transfered, e.g. 1000. Click "Send Tokens"
 9. After the successfult JSON response is received, you can go to STRATO Management Dashboard Accounts page and check if the user you created earlier received the tokens (Update the page)
+10. Click Logout to end your session
 
 This steps show how user who signed with third-party OAuth (OpenID) provider can initiate transactions on the blockchain on his behalf without providing private keys or passwords for each transaction.
 
@@ -94,12 +95,17 @@ This steps show how user who signed with third-party OAuth (OpenID) provider can
 Different OAuth providers use various names for common OpenID terms. 
 Here is the way to set up Azure Active Directory App Registration ("client" in OAuth' terms).
 
-  Assuming we deploy STRATO node on `http://localhost:8080` and Application on `http://localhost:3000`
-  - Two "App Registrations" should be created in Azure AD (App registration "MY APP" should have App registration "STRATO" set as the "resource"):
-    - "STRATO" app registration should have:
-      - APP ID URI = `http://localhost:8080`
-    - "MY APP" application registration should have:
-      - APP ID URI = http://localhost:3000
-      - Reply URL: `http://localhost:3000/callback`
-      - API ACCESS -> Required Permissions -> Add -> Select STRATO node's app registration (type it's name in search if not on the list) -> Check Delegeted permissions on permissions page -> Save
-      - Keys -> create `Password` type secret (start typing the name to create) - use the generated key as CLIENT_SECRET for APP deployment. CLIENT_ID is Application ID of the "MY APP".
+Assuming we deploy STRATO node on `http://localhost:8080` and Application on `http://localhost:3000`
+- Two "App Registrations" should be created in Azure AD (App registration "MY APP" should have App registration "STRATO" set as the "resource"):
+  - "STRATO" app registration should have:
+    - APP ID URI = `http://localhost:8080`
+  - "MY APP" application registration should have:
+    - APP ID URI = http://localhost:3000
+    - Reply URL: `http://localhost:3000/callback`
+    - API ACCESS -> Required Permissions -> Add -> Select STRATO node's app registration (type it's name in search if not on the list) -> Check Delegeted permissions on permissions page -> Save
+    - Keys -> create `Password` type secret (start typing the name to create) - use the generated key as CLIENT_SECRET for APP deployment. CLIENT_ID is Application ID of the "MY APP".
+
+There is a known bug with Azure setup in third-party software that we are using - this will be solved in one of the nearest releases.
+ - Use `https://login.microsoftonline.com/<azure_tenant_id>/v2.0/.well-known/openid-configuration` discovery URL as value for "openIdDiscoveryUrl" parameter in app's config.yaml
+ - Use `https://login.microsoftonline.com/<azure_tenant_id>/.well-known/openid-configuration` discovery URL as value for "OAUTH_JWT_VALIDATION_DISCOVERY_URL" variable whn starting STRATO
+

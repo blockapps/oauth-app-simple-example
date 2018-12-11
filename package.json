@@ -8,6 +8,8 @@
   },
   "dependencies": {
     "blockapps-rest": "git://github.com/blockapps/blockapps-rest.git#v6.2.0",
+    "chai": "^4.2.0",
+    "co": "^4.6.0",
     "cookie-parser": "~1.4.3",
     "debug": "~2.6.9",
     "ejs": "~2.5.7",

@@ -6,6 +6,7 @@
   <script src='https://code.jquery.com/jquery-3.2.1.min.js'></script>
 </head>
 <body>
+<button type="button" id="log-out-btn"> Log Out</button>
 <h2>My account on blockchain</h2>
 <button type="button" id="get-key-btn">Get my address</button>
 <div id="get-key-result"></div>
@@ -17,8 +18,6 @@
 Transfer tokens:
 <form action='#' id='transfer-form'>
   <br/>
-  From:<br/>
-  <input type='text' name='my-address' placeholder='My address' id='transfer-my-address' size="64" required><br/>
   To:<br/>
   <input type='text' name='to-address' placeholder='To address' id='transfer-to-address' size="64" required><br/>
   Wei:<br/>
@@ -59,7 +58,6 @@ Transfer tokens:
     $.post({
       url: '/transfer',
       data: JSON.stringify({
-        addressFrom: $('#transfer-my-address').val(),
         addressTo: $('#transfer-to-address').val(),
         transferWei: $('#transfer-wei').val(),
       }),
@@ -74,6 +72,10 @@ Transfer tokens:
           console.warn(err);
           $('#transfer-result').text('Error:' + err.responseText);
         })
+  });
+
+  $('#log-out-btn').click(function (event) {
+    window.location = '/logout';
   });
 
 </script>

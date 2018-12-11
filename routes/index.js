@@ -1,68 +1,47 @@
 var express = require('express');
 var router = express.Router();
-
+const co = require('co');
+const jwtDecode = require('jwt-decode');
 const rp = require('request-promise');
 
-const config = require('../config');
+const ba = require('blockapps-rest');
+const rest = ba.rest6;
+const common = ba.common;
+const oauthConfig = common.config.oauth;
 
-const APP_TOKEN_COOKIE_NAME = config['APP_TOKEN_COOKIE_NAME'];
-const STRATO_URL = config['STRATO_URL'];
-const CLIENT_ID = config['CLIENT_ID'];
-const CLIENT_SECRET = config['CLIENT_SECRET'];
-const OAUTH_PATHS = config['OAUTH_PATHS'];
-
-
-// Set the configuration settings, see https://www.npmjs.com/package/simple-oauth2 for details
-const credentials = {
-  client: {
-    id: CLIENT_ID,
-    secret: CLIENT_SECRET
-  },
-  auth: {
-    // TODO: call /.well-known/openid-configuration discovery endpoint to get all oauth paths automatically to fill this object;
-    tokenHost: OAUTH_PATHS['TOKEN_HOST'],
-    tokenPath: OAUTH_PATHS['TOKEN_PATH'],
-    // revokePath: '',
-    authorizePath: OAUTH_PATHS['AUTHORIZE_PATH'],
-  }
-};
-const oauth2 = require('simple-oauth2').create(credentials);
+const APP_TOKEN_COOKIE_NAME = oauthConfig.appTokenCookieName;
 
 router.get('/', validateCookie(), async function(req, res, next) {
   res.render('index');
 });
 
-router.get('/login', async function(req, res, next) {
+router.get('/login', function (req, res, next) {
   if (!req.cookies[APP_TOKEN_COOKIE_NAME]) {
-    const authorizationUri = oauth2.authorizationCode.authorizeURL({
-      redirect_uri: config['OAUTH_REDIRECT_URI'],
-      scope: 'email openid', // also can be an array of multiple scopes, ex. ['<scope1>, '<scope2>', '...']
-      state: '',
-      resource: STRATO_URL,
-    });
-
-    // Redirect example using Express (see http://expressjs.com/api.html#res.redirect)
-    res.redirect(authorizationUri);
+    try {
+      const authorizationUri = req.app.oauth.oauthGetSigninURL();
+      res.redirect(authorizationUri);
+    } catch (error) {
+      console.error('Authorization Uri Error', error.message);
+      res.status(500).send('something went wrong with authorization uri: ' + error);
+    }
   } else {
     res.redirect('/');
   }
 });
 
 router.get('/callback', async function(req, res, next) {
-  // Get the access token object (the authorization code is given from the previous step).
-  const tokenConfig = {
-    code: req.query['code'],
-    redirect_uri: config['OAUTH_REDIRECT_URI'],
-    scope: 'email openid', // also can be an array of multiple scopes, ex. ['<scope1>, '<scope2>', '...']
-    resource: STRATO_URL
-  };
-
-  // Save the access token
   try {
-    const result = await oauth2.authorizationCode.getToken(tokenConfig);
-    const accessTokenResponse = oauth2.accessToken.create(result);
-    // We can encrypt the access_token before setting it as a cookie for client for additional security
-    res.cookie(APP_TOKEN_COOKIE_NAME, accessTokenResponse.token['access_token'], { maxAge: 900000, httpOnly: true });
+    const code = req.query['code'];
+    const tokensResponse = await req.app.oauth.oauthGetAccessTokenByAuthCode(code);
+    const accessToken = tokensResponse.token['access_token'];
+    const refreshToken = tokensResponse.token['refresh_token'];
+
+    const decodedToken = jwtDecode(accessToken);
+    const accessTokenExpiration = decodedToken['exp'];
+
+    res.cookie(req.app.oauth.getCookieNameAccessToken(), accessToken, {maxAge: oauthConfig['appTokenCookieMaxAge'], httpOnly: true});
+    res.cookie(req.app.oauth.getCookieNameAccessTokenExpiry(), accessTokenExpiration, {maxAge: oauthConfig['appTokenCookieMaxAge'], httpOnly: true});
+    res.cookie(req.app.oauth.getCookieNameRefreshToken(), refreshToken, {maxAge: oauthConfig['appTokenCookieMaxAge'], httpOnly: true});
     res.redirect('/');
   } catch (error) {
     console.error('Access Token Error', error.message);
@@ -70,106 +49,105 @@ router.get('/callback', async function(req, res, next) {
   }
 });
 
-router.get('/create-key', validateCookie(), async function(req, res, next) {
-  let createKeyResponse;
-  // Calling the OAUTH JWT secured API endpoint
-  try {
-    createKeyResponse = await rp({
-      uri: `${STRATO_URL}/strato/v2.3/key`,
-      method: 'POST',
-      headers: {'Authorization': `Bearer ${req.access_token}`},
-      json: true
-    });
-  } catch(error) {
-    if (error.statusCode === 400) {
-      res.status(400).send(error.message)
-    } else {
-      console.warn('key create error', error.message);
-      res.status(500).send('something went wrong with POST /key request: ' + error);
-    }
-    return // do not execute faucet step
-  }
-
-  try {
-    await rp({
-      uri: `${STRATO_URL}/bloc/v2.2/users/whatever/${createKeyResponse.address}/fill?resolve=`,
-      method: 'POST',
-    });
-    res.send(`Key and address (${createKeyResponse.address}) were created. Address was "fauceted"`);
-  } catch(error) {
-    console.warn('faucet error', error.message);
-    res.status(500).send('something went wrong with faucet request: ' + error);
-  }
-});
-
-router.get('/get-key', validateCookie(), async function(req, res, next) {
-  // Calling the OAUTH JWT secured API endpoint
-  try {
-    const getKeyResponse = await rp({
-      uri: `${STRATO_URL}/strato/v2.3/key`,
-      method: 'GET',
-      headers: {'Authorization': `Bearer ${req.access_token}`}
-    });
-    res.send(getKeyResponse)
-  } catch(error) {
-    console.warn('get address error', error.message);
-    res.status(500).send('something went wrong with GET /key request: ' + error);
-  }
-});
-
-
-router.post('/transfer', validateCookie(), async function(req, res, next) {
-  const addressFrom = req.body.addressFrom;
-  const addressTo = req.body.addressTo;
-  const transferWei = req.body.transferWei;
-
-  try {
-    const stratoResponse = await rp({
-      uri: `${STRATO_URL}/strato/v2.3/transaction?resolve=true`,
-      method: 'POST',
-      headers: {'Authorization': `Bearer ${req.access_token}`},
-      json: true,
-      body: {
-        address: `${addressFrom}`,
-        txs: [
-          {
-            payload: {
-              toAddress: `${addressTo}`,
-              value: transferWei+""
-            },
-            type: "TRANSFER"
-          }
-        ]
+router.get('/create-key', validateCookie(), function(req, res, next) {
+  // TODO: switch to async/await in rest.createKey()
+  co(function*() {
+    let createKeyResponse;
+    // Calling the OAUTH JWT secured API endpoint
+    try {
+      createKeyResponse = yield rest.createKey(req.accessToken);
+    } catch(error) {
+      if (error.statusCode === 400) {
+        res.status(400).send(error.message)
+      } else {
+        console.warn('key create error', error.message);
+        res.status(500).send('something went wrong with POST /key request: ' + error);
       }
-    });
-    res.json(JSON.stringify({result: stratoResponse}));
-  } catch(error) {
-    console.warn('transaction error', error.message);
-    res.status(500).send('something went wrong with POST /transaction: ' + error);
-  }
+      return // do not execute faucet step
+    }
+
+    try {
+      yield rp({
+        uri: `${oauthConfig.stratoUrl}/bloc/v2.2/users/whatever/${createKeyResponse.address}/fill?resolve=`,
+        method: 'POST',
+      });
+      res.send(`Key and address (${createKeyResponse.address}) were created. Address was "fauceted"`);
+    } catch(error) {
+      console.warn('faucet error', error.message);
+      res.status(500).send('something went wrong with faucet request: ' + error);
+    }
+  })
 });
 
+router.get('/get-key', validateCookie(), function(req, res, next) {
+  // TODO: switch to async/await in rest.getKey()
+  co(function*() {
+    // Calling the OAUTH JWT secured API endpoint
+    try {
+      const getKeyResponse = yield rest.getKey(req.accessToken);
+      res.json(JSON.stringify(getKeyResponse));
+    } catch(error) {
+      console.warn('get address error', error.message);
+      res.status(error.status).send(error.message)
+    }
+  })
+});
+
+router.post('/transfer', validateCookie(), function(req, res, next) {
+  // TODO: switch to async/await in rest.sendTransactions()
+  co(function*() {
+    const addressTo = req.body.addressTo;
+    const transferWei = req.body.transferWei;
+
+    try {
+      const stratoResponse = yield rest.sendTransactions(req.accessToken,
+        [{
+          payload: {
+            toAddress: `${addressTo}`,
+            value: transferWei+""
+          },
+          type: "TRANSFER"
+        }], false);
+      res.json(JSON.stringify({result: stratoResponse}));
+    } catch(error) {
+      console.warn('transaction error', error.message);
+      res.status(500).send('something went wrong with POST /transaction: ' + error);
+    }
+  })
+});
 
 function validateCookie(req, res, next) {
-  return function (req, res, next) {
+  return async function (req, res, next) {
     if (!req.cookies[APP_TOKEN_COOKIE_NAME]) {
       res.redirect('/login');
-    } else {
-      // TODO: validate JWT with signature
-      // TODO: check if token is outdated and refresh from OAUTH Provider if needed
-      req.access_token = req.cookies[APP_TOKEN_COOKIE_NAME];
-      return next();
+    }
+    else {
+      const accessToken = req.cookies[req.app.oauth.getCookieNameAccessToken()];
+
+      if (!accessToken) {
+        util.response.status('401', res, {loginUrl: req.app.oauth.oauthGetSigninURL()});
+      } else {
+        try {
+          // Not verifying JWT signature here since it is verified on STRATO side with each API call
+          await req.app.oauth.validateAndGetNewToken(req, res);
+        } catch (err) {
+          return res.status(401).send('access token is invalid')
+        }
+        req.accessToken = accessToken;
+        return next();
+      }
     }
   }
 }
 
 
 router.get('/logout', function(req, res, next) {
-  // NOT THE ACTUAL LOGOUT - only cleans app's cookie, not the oauth provider's cookie so client will be logged in again
-  // TODO: call logout endpoint of oauth provider here
-  res.clearCookie(APP_TOKEN_COOKIE_NAME);
-  res.status(200);
-  res.send('logged out');
+  // log out and clean cookies
+  const logOutUrl = req.app.oauth.getLogOutUrl();
+  res.clearCookie(req.app.oauth.getCookieNameAccessToken());
+  res.clearCookie(req.app.oauth.getCookieNameAccessTokenExpiry());
+  res.clearCookie(req.app.oauth.getCookieNameRefreshToken());
+  res.redirect(logOutUrl);
 });
 
 module.exports = router;

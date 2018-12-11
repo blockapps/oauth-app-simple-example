@@ -1,0 +1,18 @@
+apiDebug: false
+timeout: 600000
+
+nodes:
+  - id: 0
+    stratoUrl: 'http://localhost:8080/strato-api'
+    blocUrl: 'http://localhost:8080/bloc/v2.2'
+    searchUrl: 'http://localhost:8080/cirrus'
+
+oauth:
+  appTokenCookieName: "simple_app_session"
+  appTokenCookieMaxAge: 7776000000 # 90 days: 90 * 24 * 60 * 60 * 1000
+  stratoUrl: "http://localhost:8080"
+  clientId: "MY_CLIENT_ID_HERE"
+  clientSecret: "MY_CLIENT_SECRET_HERE"
+  openIdDiscoveryUrl: "MY_OPENID_DISCOVERY_URL HERE"
+  redirectUri: "http://localhost:3000/callback"
+  logoutRedirectUri: "http://localhost:3000" # url to redirect after OAuth logout (e.g. app's login screen)

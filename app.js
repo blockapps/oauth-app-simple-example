@@ -6,6 +6,12 @@ var logger = require('morgan');
 
 var indexRouter = require('./routes/index');
 
+const ba = require('blockapps-rest');
+const common = ba.common;
+const oauthConfig = common.config.oauth;
+const OAuth = common.oauth;
+
+
 var app = express();
 
 // view engine setup
@@ -35,5 +41,10 @@ app.use(function(err, req, res, next) {
   res.status(err.status || 500);
   res.render('error');
 });
+
+app.oauth = null;
+(async() => {
+  app.oauth = await OAuth.init(oauthConfig);
+})();
 
 module.exports = app;

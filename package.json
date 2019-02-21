@@ -1,6 +1,6 @@
 {
   "name": "oauth-poc",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A very simple application demonstrating how STRATO-based applications can be integrated with OAuth (OpenID) providers",
   "private": true,
   "scripts": {

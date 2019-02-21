@@ -70,6 +70,9 @@ router.get('/create-key', validateCookie(), function(req, res, next) {
       yield rp({
         uri: `${oauthConfig.stratoUrl}/bloc/v2.2/users/whatever/${createKeyResponse.address}/fill?resolve=`,
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${req.accessToken}`
+        },
       });
       res.send(`Key and address (${createKeyResponse.address}) were created. Address was "fauceted"`);
     } catch(error) {
@@ -131,7 +134,11 @@ function validateCookie(req, res, next) {
           // Not verifying JWT signature here since it is verified on STRATO side with each API call
           await req.app.oauth.validateAndGetNewToken(req, res);
         } catch (err) {
-          return res.status(401).send('access token is invalid')
+          console.warn('access token validation or refresh issue: ', err);
+          res.clearCookie(req.app.oauth.getCookieNameAccessToken());
+          res.clearCookie(req.app.oauth.getCookieNameAccessTokenExpiry());
+          res.clearCookie(req.app.oauth.getCookieNameRefreshToken());
+          res.redirect('/login');
         }
         req.accessToken = accessToken;
         return next();
